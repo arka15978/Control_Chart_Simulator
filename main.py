@@ -9,11 +9,11 @@ from scipy.stats import poisson
 df = pd.read_excel(r'/content/drive/MyDrive/Control_Chart_Limits.xlsx')
 j0 = 0
 
-def I_chart(control_chart_data,data):
+def I_chart(control_chart_data,data,sample_size):
   control_chart_data = np.append(control_chart_data,data[-1])
   return control_chart_data
 
-def MR_chart(control_chart_data,data):
+def MR_chart(control_chart_data,data,sample_size):
   control_chart_data = np.append(control_chart_data,0 if len(data)  == 1 else abs(data[-1] - data[-2]))
   return control_chart_data
 
@@ -372,6 +372,8 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
   c_sample = 0.5
   CTU_array = []
   response_time_array = []
+  j0 = 0
+  img_array = []
   
 
   if chart == 'double':
@@ -380,8 +382,8 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
       x = np.array([])
       mr = np.array([])
       for i in range(1,len(data)+1):
-        x = I_chart(x,data[:i])
-        mr = MR_chart(mr, data[:i])
+        x = I_chart(x,data[:i],sample_size)
+        mr = MR_chart(mr, data[:i],sample_size)
       x_bar = np.mean(x)
       mr_bar = np.mean(mr)
       LCL1 = x_bar - 2.66*mr_bar
@@ -537,12 +539,33 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
           #print("CCL",control_limits1, len(control_limits1))
         check1 = control_check(control_chart_input1,control_limits1)
         check2 = control_check(control_chart_input2,control_limits2)
-        if not (check1 and check2):
+        x_axis = np.array([])
+        for i in range(1,len(control_chart_input1) + 1):
 
-          print("ERROR",j)
+
+          x_axis = np.append(x_axis,i)
+        if len(control_limits1) != 0 and len(data[50:])%sample_size == 0:
+                plt.figure(figsize=(2, 2))
+                plt.plot(x_axis, control_chart_input1)
+                plt.plot(x_axis,control_limits1[:,0])
+                plt.plot(x_axis,control_limits1[:,1])
+                plt.plot(x_axis,control_limits1[:,2])
+
+                #plt.text(0.5,-1,"Process Shift")
+                plt.xlabel('Samples')
+                plt.ylabel('Control_chart_data_points')
+                plt.title('I Chart')
+                #plt.savefig(f"Plott{j0}.jpg")
+                #img = cv2.imread(f"Plott{j0}.jpg")
+                #img_array.append(img)
+                j0 += 1
+        if not check1:
+
+          #print("ERROR DETECTED AT " + str(j))
   
           if len(errors) != 0:
-            #print("Process Shift")
+            #print("Process Shift Detected at " + str(j))
+            #print("Process Shift introduced at " + str(int(error_points[int(errors[0])])))
             #print("ER",errors)
             for i in errors:
               error_resolutions[int(i)] = 1
@@ -557,7 +580,7 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
             response_time = j - int(error_points[int(errors[0])])
 
             j = int(error_points[int(errors[0])])
-            print("J",j)
+            #print("J",j)
             #errors = np.array([])
             #print("P1",mean_poisson)
             mean_poisson = mean_poisson0
@@ -576,11 +599,42 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
             errors = np.array([])
             CTU_array.append(c_cycle/t_cycle)
             response_time_array.append(response_time)
+            if len(control_limits1) != 0 and len(data[50:])%sample_size == 0:
+                plt.figure(figsize=(2, 2))
+                plt.plot(x_axis, control_chart_input1)
+                plt.plot(x_axis,control_limits1[:,0])
+                plt.plot(x_axis,control_limits1[:,1])
+                plt.plot(x_axis,control_limits1[:,2])
+
+                #plt.text(0.5,-1,"Process Shift")
+                plt.xlabel('Samples')
+                plt.ylabel('Control_chart_data_points')
+                plt.title('Process Shift')
+                #plt.savefig(f"Plott{j0}.jpg")
+                #img = cv2.imread(f"Plott{j0}.jpg")
+                #img_array.append(img)
+                j0 += 1
             #print("CF",CTU_array,response_time_array)
 
           else:
-            #print("False Alarm",j)
+            #print("False Alarm Detected at " + str(j))
             false_alarms += 1
+            if len(control_limits1) != 0 and len(data[50:])%sample_size == 0:
+                plt.figure(figsize=(2, 2))
+                plt.plot(x_axis, control_chart_input1)
+                plt.plot(x_axis,control_limits1[:,0])
+                plt.plot(x_axis,control_limits1[:,1])
+                plt.plot(x_axis,control_limits1[:,2])
+
+                #plt.text(1,0.5,"False Alarm")
+                plt.xlabel('Samples')
+                plt.ylabel('Control_chart_data_points')
+                plt.title('False Alarm')
+                #plt.savefig(f"Plottt{j0}.jpg")
+                
+                #img = cv2.imread(f"Plottt{j0}.jpg")
+                #img_array.append(img)
+                j0 += 1 
             #print("F",false_alarms)
 
      
@@ -731,16 +785,21 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
           plt.xlabel('Samples')
           plt.ylabel('Control_chart_data_points')
           plt.title('C Chart')
+          plt.savefig(f"Plot{j0}.jpg")
+          img = cv2.imread(f"Plot{j0}.jpg")
+          img_array.append(img)
+          j0 += 1 
+          
 
 # Show the plot
-          plt.show()
+         # plt.show()
         if len(control_chart_input1) != 0 and len(control_chart_input0) != 0:
           if not check1 and control_chart_input1[-1] != control_chart_input0[-1]:
           
             #print("ERROR",j)
             if len(errors) != 0:
 
-              print("Process Shift")
+              print("Process Shift",j,int(error_points[int(errors[0])]))
               #print("ER",errors)
               x_axis = np.array([])
               for i in range(1,len(control_chart_input1) + 1):
@@ -754,11 +813,15 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
                 plt.plot(x_axis,control_limits1[:,1])
                 plt.plot(x_axis,control_limits1[:,2])
 
-                plt.text(2,0.8,"Process Shift")
+                #plt.text(0.5,-1,"Process Shift")
                 plt.xlabel('Samples')
                 plt.ylabel('Control_chart_data_points')
-                plt.title('C Chart')
-                plt.show()
+                plt.title('Process Shift')
+                plt.savefig(f"Plott{j0}.jpg")
+                img = cv2.imread(f"Plott{j0}.jpg")
+                img_array.append(img)
+                j0 += 1
+                #plt.show() """
               for i in errors:
                 error_resolutions[int(i)] = 1
               response_time = j - int(error_points[int(errors[0])])
@@ -802,6 +865,7 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
               print("False Alarm",j)
               false_alarms += 1
               #print("F",false_alarms)
+
               if len(control_limits1) != 0 and len(data[50:])%sample_size == 0:
                 plt.figure(figsize=(2, 2))
                 plt.plot(x_axis, control_chart_input1)
@@ -809,11 +873,16 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
                 plt.plot(x_axis,control_limits1[:,1])
                 plt.plot(x_axis,control_limits1[:,2])
 
-                plt.text(1,0.8,"False Alarm")
+                #plt.text(1,0.5,"False Alarm")
                 plt.xlabel('Samples')
                 plt.ylabel('Control_chart_data_points')
-                plt.title('C Chart')
-                plt.show()
+                plt.title('False Alarm')
+                plt.savefig(f"Plottt{j0}.jpg")
+                
+                img = cv2.imread(f"Plottt{j0}.jpg")
+                img_array.append(img)
+                j0 += 1 
+                #plt.show()
         
 
         control_chart_input0 = control_chart_input1
@@ -883,11 +952,12 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
         #print("CCI",control_chart_input1)
         #print("CCL",control_limits1)
         if not check1:
-          print("ERROR",j)
+          print("ERROR DETECTED")
           if len(errors) != 0:
 
-            print("Process Shift")
-            #print("ER",errors)
+            print("Process Shift detected at: " + str(j))
+            print("Process shift introduced at: " + str(int(error_points[int(errors[0])])))
+            
             for i in errors:
               error_resolutions[int(i)] = 1
             response_time = j - int(error_points[int(errors[0])])
@@ -914,7 +984,7 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
             #print("CF",CTU_array,response_time_array)
 
           else:
-            print("False Alarm",j)
+            print("False Alarm detected at: " + str(j))
             false_alarms += 1
             #print("F",false_alarms)
 
@@ -952,7 +1022,10 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
       else:
         data = np.append(data,np.random.poisson(lam = mean_poisson, size = 1))
         j += 1
-  return ["a",[CTU_array,response_time_array],np.sum(error_resolutions)]
+  """height, width, layers = img_array[0].shape
+  size = (width, height)
+  out = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 10, size) """
+  return [[CTU_array,response_time_array],np.sum(error_resolutions)]
  
   
   
@@ -962,34 +1035,58 @@ def simulator(sample_size = 1, chart1 = I_chart, chart2 = MR_chart, mean = 10, s
 
 
         
-#print(simulator(sample_size = 2, chart1 = np_chart, chart_name = "np_chart",chart = "single"))
+
 #print(simulator(sample_size = 2 ,chart1 = C_chart,chart_name = "C_chart",chart = "single", mode = 'discrete', const_sample_size = True))
-simulator(sample_size = 3 ,chart1 = C_chart,chart_name = "C_chart",chart = "single", mode = 'discrete', const_sample_size = True)
+#print(simulator(sample_size = 5 ,chart1 = C_chart,chart_name = "C_chart",chart = "single", mode = 'discrete', const_sample_size = True))
+#print(simulator(sample_size = 1 ,chart1 = X_chart,chart2 = R_chart,chart_name = "X_chart",chart = "double", mode = 'continuous', const_sample_size = True))
+result = simulator(chart1 = U_chart,chart_name = "U_chart",chart = "single", mode = 'discrete', const_sample_size = False)
+if result[1] == 4:
+  print("All process shifts were detected")
+  print("CTU array: " + str(result[0][0]))
+  print("Response Time array: " + str(result[0][1]))
+
+"""results = simulator()
+if results[1] == 4:
+  print("The control chart detected all the process shifts!")
+  cost_sum = np.sum(results[0][0])
+  time_sum = np.sum(results[0][1])
+  print("Array of CTUs : " + str(results[0][0]))
+  print("Array of Response Times: " + str(results[0][1]))
+  print("Objective value: " + str(1000*cost_sum + time_sum))
+else:
+  print("The control chart failed to detect all the process shifts")"""
+
+
 
 """optimal_sample_sizes = []
-for _ in range(20):
-  optimal_sample_size = 0
-  min_objective = 1000000
-  for i in range(1,15):
+for _ in range(20):"""
+"""optimal_sample_size = 0
+min_objective = 1000000
+for i in range(2,15):
 
-    sol = [i,simulator(sample_size = i ,chart1 = C_chart,chart_name = "C_chart",chart = "single", mode = 'discrete', const_sample_size = True)]
+  sol = [i,simulator(sample_size = i ,chart1 = X_chart,chart2 = R_chart,chart_name = "X_chart",chart = "double", mode = 'continuous', const_sample_size = True)]
 
-    if sol[1][2] == 4:
-      cost_sum = np.sum(sol[1][1][0])
-      time_sum = np.sum(sol[1][1][1])
-    min_objective = min(min_objective,cost_sum*1000 + time_sum)
-    if cost_sum*1000 + time_sum == min_objective:
-      optimal_sample_size = i
+  if sol[1][1] == 4:
+    cost_sum = np.sum(sol[1][0][0])
+    time_sum = np.sum(sol[1][0][1])
+  print("CTU_Array for sample size " + str(i) + ":" + str(sol[1][0][0]))
+  print("Response Time array for sample size " + str(i) + ":" + str(sol[1][0][1]))
+  print("Total Cost : " + str(cost_sum))
+  print("Total Response Time : " + str(time_sum))
+  print("Objective : " + str(cost_sum*1000 + time_sum))
+  min_objective = min(min_objective,cost_sum*1000 + time_sum)
+  if cost_sum*1000 + time_sum == min_objective:
+    optimal_sample_size = i
     
 
   #print("I",i,cost_sum,time_sum, cost_sum*1000 + time_sum)
   #print("OVER")
 #sol = simulator(chart1 = U_chart,chart_name = "U_chart",chart = "single", mode = 'discrete', const_sample_size = False)
 #if sol[1][2] == 4:
-  print("O",optimal_sample_size)
-  optimal_sample_sizes.append(optimal_sample_size)
-  print("P",optimal_sample_sizes)
-counts = np.bincount(np.array(optimal_sample_sizes).astype(int))
+print("Optimal Sample Size :" + str(optimal_sample_size))
+optimal_sample_sizes.append(optimal_sample_size)
+  print("P",optimal_sample_sizes)"""
+"""counts = np.bincount(np.array(optimal_sample_sizes).astype(int))
 max_count_index = np.argmax(counts)
 print(max_count_index) """
 
